@@ -1,18 +1,11 @@
---[[
-	Example 2 — full feature tour
-	Multiple tabs, lucide icons on tabs and inside modules,
-	plus showcasing every header control.
-]]
-
-local Library = https://raw.githubusercontent.com/Nail120212/europhiav2/refs/heads/main/europhiav2.txt
+local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/Nail120212/europhiav2/refs/heads/main/europhiav2.txt'))()
 
 local UI = Library:init({
 	title = 'NexxTO Hub',
-	logo  = 'rbxassetid://105054285909188',                 -- shown in header AND on the floating icon when minimized
-	size  = UDim2.new(0, 420, 0, 350)   -- starting size; size-button cycles through presets from there
+	logo  = 'rbxassetid://105054285909188',
+	size  = UDim2.new(0, 420, 0, 350)
 })
 
--- ===== Combat tab =====
 local Combat = UI:create_tab('Combat', 'sword')
 
 local AimbotModule = Combat:create_module({
@@ -45,7 +38,6 @@ Combat:create_button({
 	callback = function() print('camera reset') end
 })
 
--- ===== Visuals tab =====
 local Visuals = UI:create_tab('Visuals', 'eye')
 
 Visuals:create_checkbox({
@@ -61,7 +53,6 @@ Visuals:create_dropdown({
 	callback = function(value) print('esp mode ->', value) end
 })
 
--- ===== Settings tab =====
 local Settings = UI:create_tab('Settings', 'settings')
 
 Settings:create_textbox({
@@ -73,7 +64,7 @@ Settings:create_textbox({
 Settings:create_button({
 	title = 'Close UI',
 	callback = function()
-		UI:toggle_window(true) -- demonstrates minimizing from a button instead of the header
+		UI:toggle_window(true)
 	end
 })
 
