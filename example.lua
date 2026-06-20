@@ -73,4 +73,43 @@ UI:notify({
 	content = 'Try the size button to cycle window sizes, minimize to dock a draggable icon, or hit X to exit.',
 	duration = 5,
 	notify_type = 'normal'
+})	title = 'Reset Camera',
+	callback = function() print('camera reset') end
+})
+
+local Visuals = UI:create_tab('Visuals', 'eye')
+
+Visuals:create_checkbox({
+	title = 'ESP',
+	default = false,
+	callback = function(state) print('esp:', state) end
+})
+
+Visuals:create_dropdown({
+	title = 'ESP Mode',
+	options = {'Box', 'Skeleton', 'Both'},
+	default = 'Box',
+	callback = function(value) print('esp mode ->', value) end
+})
+
+local Settings = UI:create_tab('Settings', 'settings')
+
+Settings:create_textbox({
+	title = 'Webhook URL',
+	placeholder = 'https://...',
+	callback = function(text) print('webhook ->', text) end
+})
+
+Settings:create_button({
+	title = 'Close UI',
+	callback = function()
+		UI:toggle_window(true)
+	end
+})
+
+UI:notify({
+	title = 'Nex Hub',
+	content = 'Try the size button to cycle window sizes, minimize to dock a draggable icon, or hit X to exit.',
+	duration = 5,
+	notify_type = 'normal'
 })
