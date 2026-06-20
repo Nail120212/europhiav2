@@ -1,6 +1,4 @@
--- Credits
 --> euphoria! made by riq and enrithy, dont skid thx
---> modified by nail
 
 export type Library = { __current_tab: Tab?, __tabs: { Tab }, __all_elements: { { name: string, frame: Frame } }, __window: { main: Frame, euphoria: ScreenGui }, __resize_start: Vector2?, __size_start: UDim2?, __resizing: boolean, __ui_scale: number, __device: string?, __drag_input: InputObject?, __drag_start: Vector2?, __start_pos: UDim2?, __dragging: boolean?, __minimized: boolean, get_device: (self: Library) -> (), notify: (self: Library, index: { title: string, content: string, duration: number?, notify_type: string }) -> (), get_screen_scale: (self: Library) -> (), mobile_ui_scale: (self: Library) -> (), mobile_controls: (self: Library) -> (), init: (self: Library, title: string?) -> Library, create_tab: (self: Library, name: string, icon: string?) -> Tab }
 export type Tab = { __library: Library, button: TextButton, container: ScrollingFrame, label: TextLabel, highlight: Frame, outline: UIStroke, highlight_effect: Frame, icon: ImageLabel?, create_button: (self: Tab, index: { title: string, callback: () -> () }) -> (), create_divider: (self: Tab, text: string?) -> (), create_slider: (self: Tab, index: { title: string, minimum: number?, maximum: number?, default: number?, rounding: number?, callback: (value: number) -> () }) -> { Set: (self: any, value: number) -> () }, create_textbox: (self: Tab, index: { title: string, placeholder: string?, callback: (text: string) -> () }) -> { Set: (self: any, text: string) -> () }, create_module: (self: Tab, index: { title: string, default: boolean?, callback: (state: boolean) -> () }) -> Module, create_checkbox: (self: Tab, index: { title: string, default: boolean?, callback: (state: boolean) -> () }) -> (), create_dropdown: (self: Tab, index: { title: string, options: { string }, default: string | { string }?, multi_selection: boolean?, callback: (value: string | { string }) -> () }) -> { Set: (self: any, value: string | { string }) -> () } }
@@ -67,13 +65,7 @@ local Library : Library = {
 
 	__minimized = false,
 	__closed = false,
-	__floating_icon = nil,
-	__size_presets = {
-		UDim2.new(0, 550, 0, 380),
-		UDim2.new(0, 700, 0, 450),
-		UDim2.new(0, 900, 0, 560)
-	},
-	__size_index = 2
+	__floating_icon = nil
 }
 Library.__index = Library
 Library.get_icon = function(self, name) return __get_lucide(name) end
@@ -428,6 +420,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 	__main.Name = 'Main'
 	__main.Size = UDim2.new(0, 0, 0, 0)
 	__main.Position = UDim2.new(0.5, 0, 0.5, 0)
+	__main.AnchorPoint = Vector2.new(0.5, 0.5)
 	__main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	__main.BackgroundTransparency = 0.1
 	__main.BorderSizePixel = 0
@@ -594,11 +587,11 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 		end
 	end)
 
-	--> header control buttons: size changer / minimize / exit
+	--> header control buttons: minimize / exit
 	local __header_buttons : Frame = Instance.new('Frame')
 	__header_buttons.Name = 'HeaderButtons'
-	__header_buttons.Size = UDim2.new(0, 96, 0, 28)
-	__header_buttons.Position = UDim2.new(1, -110, 0.5, -14)
+	__header_buttons.Size = UDim2.new(0, 64, 0, 28)
+	__header_buttons.Position = UDim2.new(1, -78, 0.5, -14)
 	__header_buttons.BackgroundTransparency = 1
 	__header_buttons.ZIndex = 3
 	__header_buttons.Parent = __header
@@ -639,21 +632,8 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 		return __btn
 	end
 
-	local __size_button : ImageButton = __make_header_button('maximize-2')
 	local __minimize_button : ImageButton = __make_header_button('minus')
 	local __exit_button : ImageButton = __make_header_button('x')
-
-	__size_button.MouseButton1Click:Connect(function()
-		self.__size_index = (self.__size_index % #self.__size_presets) + 1
-
-		local __new_size : UDim2 = self.__size_presets[self.__size_index]
-		local __center : Vector3 = Vector2.new(__main.AbsolutePosition.X + __main.AbsoluteSize.X / 2, __main.AbsolutePosition.Y + __main.AbsoluteSize.Y / 2)
-
-		__create_tween(__main, {
-			Size = __new_size,
-			Position = UDim2.new(0, __center.X - __new_size.X.Offset / 2, 0, __center.Y - __new_size.Y.Offset / 2)
-		}, 0.3)
-	end)
 
 	--> floating draggable icon shown when the window is hidden/minimized
 	local function __create_floating_icon() : ImageButton
@@ -774,6 +754,27 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 
 	self.__resizing = false
 
+	local __resize_position_start : UDim2 = __main.Position
+	local __min_width : number = 400
+	local __min_height : number = 300
+
+	-- applies a resize delta instantly (no tween) so the window tracks the
+	-- cursor 1:1, and compensates Position since __main is center-anchored,
+	-- keeping the top-left corner fixed in place while the bottom-right grows
+	local function __apply_resize(__delta : Vector2) : ()
+		local __new_width : number = math.max(__min_width, self.__size_start.X.Offset + __delta.X)
+		local __new_height : number = math.max(__min_height, self.__size_start.Y.Offset + __delta.Y)
+
+		local __width_grown : number = __new_width - self.__size_start.X.Offset
+		local __height_grown : number = __new_height - self.__size_start.Y.Offset
+
+		__main.Size = UDim2.new(0, __new_width, 0, __new_height)
+		__main.Position = UDim2.new(
+			__resize_position_start.X.Scale, __resize_position_start.X.Offset + __width_grown / 2,
+			__resize_position_start.Y.Scale, __resize_position_start.Y.Offset + __height_grown / 2
+		)
+	end
+
 	if self.__device == 'mobile' or self.__device == 'unknown' then
 		local __resize_hitbox : Frame = Instance.new('Frame')
 
@@ -792,6 +793,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 
 			self.__resize_start = Vector2.new(__input.Position.X, __input.Position.Y)
 			self.__size_start = __main.Size
+			__resize_position_start = __main.Position
 		end)
 
 		__resize_hitbox.InputChanged:Connect(function(__input)
@@ -800,12 +802,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 			end
 
 			local __current_pos : Vector2 = Vector2.new(__input.Position.X, __input.Position.Y)
-			local __delta : Vector2 = __current_pos - self.__resize_start
-
-			local __new_width : number = math.max(300, self.__size_start.X.Offset + __delta.X)
-			local __new_height : number = math.max(250, self.__size_start.Y.Offset + __delta.Y)
-
-			__main.Size = UDim2.new(0, __new_width, 0, __new_height)
+			__apply_resize(__current_pos - self.__resize_start)
 		end)
 
 		__resize_hitbox.InputEnded:Connect(function(__input)
@@ -826,6 +823,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 
 		self.__resize_start = UserInputService:GetMouseLocation()
 		self.__size_start = __main.Size
+		__resize_position_start = __main.Position
 	end)
 
 	__resize_button.InputBegan:Connect(function(__input)
@@ -837,6 +835,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 
 		self.__resize_start = Vector2.new(__input.Position.X, __input.Position.Y)
 		self.__size_start = __main.Size
+		__resize_position_start = __main.Position
 	end)
 
 	__resize_button.InputChanged:Connect(function(__input)
@@ -845,12 +844,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 		end
 
 		local __current_pos : Vector2 = Vector2.new(__input.Position.X, __input.Position.Y)
-		local __delta : Vector2 = __current_pos - self.__resize_start
-
-		local __new_width : number = math.max(300, self.__size_start.X.Offset + __delta.X)
-		local __new_height : number = math.max(250, self.__size_start.Y.Offset + __delta.Y)
-
-		__main.Size = UDim2.new(0, __new_width, 0, __new_height)
+		__apply_resize(__current_pos - self.__resize_start)
 	end)
 
 	__resize_button.InputEnded:Connect(function(__input)
@@ -874,9 +868,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 			return
 		end
 
-		local __delta : Vector2 = UserInputService:GetMouseLocation() - self.__resize_start
-
-		__create_tween(__main, {Size = UDim2.new(0, math.max(400, self.__size_start.X.Offset + __delta.X), 0, math.max(300, self.__size_start.Y.Offset + __delta.Y))}, 0.5)
+		__apply_resize(UserInputService:GetMouseLocation() - self.__resize_start)
 	end)
 
 	task.spawn(function()
@@ -893,8 +885,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 		end
 
 		local __grow_tween = __create_tween(__main, {
-			Size = UDim2.new(0, __target_width, 0, __target_height),
-			Position = UDim2.new(0.5, -__target_width/2, 0.5, -__target_height/2)
+			Size = UDim2.new(0, __target_width, 0, __target_height)
 		}, 0.25)
 
 		__grow_tween.Completed:Connect(function()
@@ -940,8 +931,7 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 			__main.ClipsDescendants = true
 
 			local __expand_tween = __create_tween(__main, {
-				Size = UDim2.new(__original_size.X.Scale, __original_size.X.Offset + 30, __original_size.Y.Scale, __original_size.Y.Offset + 30),
-				Position = UDim2.new(__original_position.X.Scale, __original_position.X.Offset - (30 / 2), __original_position.Y.Scale, __original_position.Y.Offset - (30 / 2))
+				Size = UDim2.new(__original_size.X.Scale, __original_size.X.Offset + 30, __original_size.Y.Scale, __original_size.Y.Offset + 30)
 			}, 0.35)
 
 			table.insert(__current_tweens, __expand_tween)
@@ -956,7 +946,6 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 
 				local __shrink_tween = __create_tween(__main, {
 					Size = UDim2.new(0, 0, 0, 0),
-					Position = UDim2.new(__original_position.X.Scale, __original_position.X.Offset + (__original_size.X.Offset / 2), __original_position.Y.Scale, __original_position.Y.Offset + (__original_size.Y.Offset / 2)),
 					BackgroundTransparency = 1
 				}, 0.3)
 
@@ -985,14 +974,12 @@ function Library:init(__config : ({ title: string?, logo: string?, size: UDim2? 
 			end
 
 			__main.Size = UDim2.new(0, 0, 0, 0)
-			__main.Position = UDim2.new(__original_position.X.Scale, __original_position.X.Offset + (__original_size.X.Offset / 2), __original_position.Y.Scale, __original_position.Y.Offset + (__original_size.Y.Offset / 2))
 			__main.Visible = true
 			__main.BackgroundTransparency = 0.1
 			__main.ClipsDescendants = true
 
 			local __grow_tween = __create_tween(__main, {
-				Size = __original_size,
-				Position = __original_position
+				Size = __original_size
 			}, 0.25)
 
 			table.insert(__current_tweens, __grow_tween)
