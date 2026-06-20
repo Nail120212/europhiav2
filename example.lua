@@ -4,12 +4,12 @@
 	plus showcasing every header control.
 ]]
 
-local Library = loadstring(game:HttpGet('PUT_YOUR_RAW_LIBRARY_URL_HERE'))()
+local Library = https://raw.githubusercontent.com/Nail120212/europhiav2/refs/heads/main/europhiav2.txt
 
 local UI = Library:init({
-	title = 'Nex Hub',
-	logo  = 'sparkles',                 -- shown in header AND on the floating icon when minimized
-	size  = UDim2.new(0, 750, 0, 480)   -- starting size; size-button cycles through presets from there
+	title = 'NexxTO Hub',
+	logo  = 'rbxassetid://105054285909188',                 -- shown in header AND on the floating icon when minimized
+	size  = UDim2.new(0, 420, 0, 350)   -- starting size; size-button cycles through presets from there
 })
 
 -- ===== Combat tab =====
